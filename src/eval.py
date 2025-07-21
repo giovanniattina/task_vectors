@@ -31,18 +31,21 @@ def eval_single_dataset(image_encoder, dataset_name, args):
 
     with torch.no_grad():
         top1, correct, n = 0., 0., 0.
+        model.to(device)
         for i, data in enumerate(tqdm.tqdm(dataloader)):
             data = maybe_dictionarize(data)
             x = data['images'].to(device)
             y = data['labels'].to(device)
 
-            logits = utils.get_logits(x, model)
+            #logits = utils.get_logits(x, model)
+            logits = model(x)
 
-            pred = logits.argmax(dim=1, keepdim=True).to(device)
+            pred = logits.argmax(dim=1, keepdim=True)
 
             correct += pred.eq(y.view_as(pred)).sum().item()
             
             n += y.size(0)
+            break
 
         top1 = correct / n
 
