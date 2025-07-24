@@ -1,20 +1,6 @@
 # Editing Models with Task Arithmetic
 
-This repository contains code for the ICLR 2023 paper [Editing Models with Task Arithmetic](https://arxiv.org/abs/2212.04089), by Gabriel Ilharco, Marco Tulio Ribeiro, Mitchell Wortsman, Suchin Gururangan, Ludwig Schmidt, Hannaneh Hajishirzi and Ali Farhadi.
-
-### Abstract
-*Changing how pre-trained models behave---e.g., improving their performance on a downstream task or mitigating biases learned during pre-training---is a common practice when developing machine learning systems. In this work, we propose a new paradigm for steering the behavior of neural networks, centered around task vectors. A task vector specifies a direction in the weight space of a pre-trained model, such that movement in that direction improves performance on the task. We build task vectors by subtracting the weights of a pre-trained model from the weights of the same model after fine-tuning on a task. We show that these task vectors can be modified and combined together through arithmetic operations such as negation and addition, and the behavior of the resulting model is steered accordingly. Negating a task vector decreases performance on the target task, with little change in model behavior on control tasks. Moreover, adding task vectors together can improve performance on multiple tasks at once. Finally, when tasks are linked by an analogy relationship of the form ``A is to B as C is to D", combining task vectors from three of the tasks can improve performance on the fourth, even when no data from the fourth task is used for training. Overall, our experiments with several models, modalities and tasks show that task arithmetic is a simple, efficient and effective way of editing models.*
-
-
-### Summary figure
-
-<p align="center">
-<img src="img/task_vectors.png" alt="scatter" width="100%"/>
-</p>
-
-An illustration of task vectors and the arithmetic operations we study for editing models. (a) A task vector is obtained by subtracting the weights of a pre-trained model from the weights of the same model after fine-tuning. (b) Negating a task vector degrades performance on the task, without substantial changes in control tasks. (c) Adding task vectors together improves the performance of the pre-trained model on the tasks under consideration. (d) When tasks form an analogy relationship such as supervised and unsupervised learning on two different data sources, it is possible to improve performance on a supervised target task using only vectors from the remaining three combinations of objectives and datasets.
-
-## Code
+This repository is inspired by the code from the ICLR 2023 paper [Editing Models with Task Arithmetic](https://arxiv.org/abs/2212.04089), by Gabriel Ilharco, Marco Tulio Ribeiro, Mitchell Wortsman, Suchin Gururangan, Ludwig Schmidt, Hannaneh Hajishirzi and Ali Farhadi.
 
 ### Install dependencies
 
@@ -42,95 +28,117 @@ from task_vectors import TaskVector
 task_vector = TaskVector(pretrained_checkpoint, finetuned_checkpoint)
 ```
 
-Once created, task vectors can be modified and combined through arithmetic operations! For instance, to negate a task vector, simply use the ```-``` operator:
+## Artificial Data Pipeline
+
+This repository includes a complete pipeline for generating synthetic datasets and training MLP models to support task vector research. The workflow separates feature extraction and classification components, enabling controlled experiments with task vectors.
+
+### Data Generation
+
+Synthetic classification datasets are generated using `sklearn.datasets.make_classification` with configurable parameters:
 
 ```python
-# Negating a task vector
-new_task_vector = -task_vector
+from sklearn.datasets import make_classification
+import pandas as pd
+
+# Example configuration for different datasets
+datasets = {
+    "dataset1": {
+        "n_samples": 10000,
+        "n_features": 512,
+        "n_classes": 10,
+        "n_informative": 50,
+        "random_state": 42
+    },
+    "dataset2": {
+        "n_samples": 8000,
+        "n_features": 512,
+        "n_classes": 15,
+        "n_informative": 60,
+        "random_state": 123
+    }
+}
 ```
 
-To add task vectors, you can use the ```+``` operator, or ```sum```:
+### Model Architecture
+
+The MLP model consists of:
+- **Backbone**: 10-layer feature extractor with ReLU activations
+- **Head**: 3-layer classification component with configurable output dimensions
 
 ```python
-# Adding two task vectors
-new_task_vector = task_vector_A + task_vector_B
-# Adding multiple task vectors
-new_task_vector = sum(list_of_task_vectors)
+class BackBone(torch.nn.Module):
+    def __init__(self, input_dim):
+        # First block: input_dim -> input_dim (5 layers)
+        self.block1 = MLPBlock(input_dim, input_dim, num_layers=5)
+        
+        # Transition layer: dimensionality reduction
+        self.transition = torch.nn.Linear(input_dim, input_dim // 2)
+        
+        # Second block: reduced_dim -> reduced_dim (5 layers)
+        self.block2 = MLPBlock(input_dim // 2, input_dim // 2, num_layers=5)
 ```
 
-Analogies can be done as simply as:
+### Training and Fine-tuning Workflow
+
+1. **Base Training**: Train the complete model on `dataset1`
+   - Learning rate: 0.001
+   - Batch size: 32
+   - Epochs: 100
+   - Save: Complete model and head weights separately
+
+2. **Fine-tuning**: Adapt the pre-trained model to new datasets
+   - Load pre-trained backbone weights
+   - Replace classification head for new number of classes
+   - Fine-tune with lower learning rate (0.0001)
+   - Option to freeze backbone or fine-tune entire model
+
+*For detailed implementation, see the documentation in [src/artificial_data/readme.md](src/artificial_data/readme.md).*
+
+# Artificial Data Experiment
+
+This repository  includes experiments with artificial datasets using MLP models to demonstrate the task vector operations. The experiment compares different arithmetic operations (subtract, add, multiply, divide) applied to task vectors and evaluates their impact on model performance.
 
 ```python
-# Task analogies
-new_task_vector = task_vector_C + task_vector_B - task_vector_A
-```
-
-### Checkpoints
-
-Checkpoints for CLIP ViT-B/32, ViT-B/16 and ViT-L/14 are available on he link below, including fine-tuned checkpoints on eight downstream tasks: Stanford Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397 and SVHN.
-
-[Download here](https://drive.google.com/drive/folders/1u_Tva6x0p6oxu5Eo0ZZsf-520Cc_3MKw?usp=share_link)
-
-### Examples
-
-Below is an example of negating a task vector from MNIST, then evaluating on MNIST and on ImageNet:
-
-```python
-import torch
+import pandas as pd
+import matplotlib.pyplot as plt
 from task_vectors import TaskVector
-from eval import eval_single_dataset
-from args import parse_arguments
+from evaluation import eval_single_dataset
 
-# Config
-dataset = 'MNIST'
-model = 'ViT-L-14'
-args = parse_arguments()
-args.data_location = '/path/to/data'
-args.model = model
-args.save = f'checkpoints/{model}'
-pretrained_checkpoint = f'checkpoints/{model}/zeroshot.pt'
-finetuned_checkpoint = f'checkpoints/{model}/{dataset}/finetuned.pt'
+# Configuration for artificial data experiment
+pretrained_checkpoint = 'artificial_checkpoints/mlp_model.pth'
+finetuned_checkpoint = 'artificial_checkpoints/mlp_model_dataset2.pth'
+dataset = 'dataset2'
+device = 'cpu'
 
+# Test different task vector operations
+results = []
+for operation in ['subtract', 'add', 'multiply', 'divide']:
+    task_vector = TaskVector(
+        pretrained_checkpoint=pretrained_checkpoint,
+        finetuned_checkpoint=finetuned_checkpoint,
+        operation=operation,
+    )
+    for i in range(10):
+        print(f"Iteration {i+1}")
+        model_backbone = task_vector.apply_to(pretrained_checkpoint, 0.1*i)
+        acc = eval_single_dataset(model_backbone, dataset, device)
+        results.append((operation, i, acc))
 
-# Create the task vector
-task_vector = TaskVector(pretrained_checkpoint, finetuned_checkpoint)
-# Negate the task vector
-neg_task_vector = -task_vector
-# Apply the task vector
-image_encoder = neg_task_vector.apply_to(pretrained_checkpoint, scaling_coef=0.5)
-# Evaluate
-eval_single_dataset(image_encoder, dataset, args)
-eval_single_dataset(image_encoder, 'ImageNet', args)
+# Create DataFrame and visualize results
+results_df = pd.DataFrame(results, columns=['operation', 'iteration', 'accuracy'])
+
+# Plot results
+plt.figure(figsize=(12, 6))
+for operation in results_df['operation'].unique():
+    subset = results_df[results_df['operation'] == operation]
+    plt.plot(subset['iteration'], subset['accuracy'], label=operation)
+plt.xlabel('Iteration')
+plt.ylabel('Accuracy')
+plt.title('Task Vector Operations on MLP Model')
+plt.legend()
+plt.grid()
+plt.show()
 ```
 
-You can also find an example of adding task vectors together below, using the MNIST and RESISC45 datasets:
+*Note: This experiment uses the basic structure of the task vector code adapted for artificial datasets with MLP models to demonstrate the effects of different arithmetic operations on task vectors.*
 
-
-```python
-import torch
-from task_vectors import TaskVector
-from eval import eval_single_dataset
-from args import parse_arguments
-
-# Config
-datasets = ['MNIST', 'RESISC45']
-model = 'ViT-L-14'
-args = parse_arguments()
-args.data_location = '/path/to/data'
-args.model = model
-args.save = f'checkpoints/{model}'
-pretrained_checkpoint = f'checkpoints/{model}/zeroshot.pt'
-
-# Create the task vectors
-task_vectors = [
-    TaskVector(pretrained_checkpoint, f'checkpoints/{model}/{dataset}/finetuned.pt')
-    for dataset in datasets
-]
-# Sum the task vectors
-task_vector_sum = sum(task_vectors)
-# Apply the resulting task vector
-image_encoder = task_vector_sum.apply_to(pretrained_checkpoint, scaling_coef=0.8)
-# Evaluate
-for dataset in datasets:
-    eval_single_dataset(image_encoder, dataset, args)
-```
