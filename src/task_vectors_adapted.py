@@ -1,5 +1,6 @@
 import torch
 
+from .task_vectors import TaskVector
 
 class TaskVectorAdapted(TaskVector):
     def __init__(self, pretrained_checkpoint=None, finetuned_checkpoint=None, vector=None, operation='subtract'):
