@@ -45,7 +45,23 @@ class TaskVector():
                     print(
                         f'Warning, key {key} is not present in both task vectors.')
                     continue
+                elif 'head' in key:
+                    continue
                 new_vector[key] = self.vector[key] + other.vector[key]
+        return TaskVector(vector=new_vector)
+
+    def sub_interpolate(self, other, alpha=0.5):
+        """Interpolate between two task vectors."""
+        with torch.no_grad():
+            new_vector = {}
+            for key in self.vector:
+                if key not in other.vector:
+                    print(
+                        f'Warning, key {key} is not present in both task vectors.')
+                    continue
+                elif 'head' in key:
+                    continue
+                new_vector[key] = (1 - alpha) * self.vector[key] + alpha * other.vector[key]
         return TaskVector(vector=new_vector)
 
     def __radd__(self, other):

@@ -6,30 +6,30 @@ from sklearn.model_selection import train_test_split
 
 
 datasets = {
-    "dataset1": {
-        "function": make_classification,
-        "params": {
-            "n_samples": 10000,
-            "n_features": 512,
-            "n_classes": 10,
-            "n_informative": 20,
-            "random_state": 42
-        }
-    },
-    "dataset2": {
-        "function": make_classification,
-        "params": {
-            "n_samples": 12000,
-            "n_features": 512,
-            "n_classes": 5,
-            "n_informative": 10,
-            "random_state": 42
-        }
-    },
+    # "dataset1": {
+    #     "function": make_classification,
+    #     "params": {
+    #         "n_samples": 10000,
+    #         "n_features": 512,
+    #         "n_classes": 10,
+    #         "n_informative": 20,
+    #         "random_state": 42
+    #     }
+    # },
+    # "dataset2": {
+    #     "function": make_classification,
+    #     "params": {
+    #         "n_samples": 12000,
+    #         "n_features": 512,
+    #         "n_classes": 5,
+    #         "n_informative": 10,
+    #         "random_state": 42
+    #     }
+    # },
     "dataset3": {
         "function": make_classification,
         "params": {
-            "n_samples": 15000,
+            "n_samples": 8000,
             "n_features": 512,
             "n_classes": 20,
             "n_informative": 10,
