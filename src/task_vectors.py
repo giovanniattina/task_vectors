@@ -63,6 +63,19 @@ class TaskVector():
                     continue
                 new_vector[key] = (1 - alpha) * self.vector[key] + alpha * other.vector[key]
         return TaskVector(vector=new_vector)
+    
+    def custom_operation(self, other, operation):  
+        with torch.no_grad():
+            new_vector = {}
+            for key in self.vector:
+                if key not in other.vector:
+                    print(
+                        f'Warning, key {key} is not present in both task vectors.')
+                    continue
+                elif 'head' in key:
+                    continue
+                new_vector[key] =  operation(self.vector[key], other.vector[key]) 
+        return TaskVector(vector=new_vector)
 
     def __radd__(self, other):
         if other is None or isinstance(other, int):

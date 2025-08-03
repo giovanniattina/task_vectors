@@ -21,11 +21,10 @@ def eval_single_dataset(backbone, dataset_name, device):
             X_val, y_val = batch
             X_val, y_val = X_val.to(device), y_val.to(device)
             outputs = classification_model(X_val)
-            _, predicted = torch.max(outputs, 1)
-
+            _, predicted = torch.max(outputs.data, 1)
+        
             all_predictions.extend(predicted.cpu().numpy())
             all_targets.extend(y_val.cpu().numpy())
-
     # Calculate accuracy
     accuracy = (torch.tensor(all_predictions) == torch.tensor(all_targets)).float().mean().item()
     return accuracy
@@ -39,7 +38,7 @@ def get_head(backbone, dataset_name):
     return head
 
 def get_dataset(dataset_name, batch_size=32, shuffle=False):
-    path = f"artificial_datasets/{dataset_name}_test.csv"
+    path = f"artificial_datasets_2/{dataset_name}_test.csv"
     val_data = pd.read_csv(path) 
     X_val = val_data.iloc[:, :-1].values
     y_val = val_data.iloc[:, -1].values

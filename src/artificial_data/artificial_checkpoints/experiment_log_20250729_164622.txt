@@ -1,0 +1,17 @@
+MLP Training Experiment Log
+========================================
+Timestamp: 2025-07-29 16:46:22
+Learning Rate: 0.0001
+Batch Size: 32
+Number of Epochs: 5
+Input Dimension: 512
+Number of Classes: 10
+Training Samples: 12000
+Validation Samples: 3000
+Model Parameters: 1,807,754
+
+Final Results:
+Training Loss: 0.0000
+Validation Loss: 5.7479
+Validation Accuracy: 56.50%
+Best Validation Accuracy: 56.50%
